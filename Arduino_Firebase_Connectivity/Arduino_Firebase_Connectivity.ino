@@ -1,8 +1,8 @@
 #include <WiFi.h>
 #include <FirebaseESP32.h>
 
-#define WIFI_SSID "DVT-JHB"   //"VodafoneMobileWiFi-467D"
-#define WIFI_PASSWORD "BullHornBitesOnce"   //"voIK3ik3"
+#define WIFI_SSID "Erasmus Fibre"   //"VodafoneMobileWiFi-467D" // "DVT-JHB" 
+#define WIFI_PASSWORD "westange"   //"voIK3ik3" // "BullHornBitesOnce"
 #define FIREBASE_HOST "parkit-6cd47.firebaseio.com" //Do not include https:// in FIREBASE_HOST
 #define FIREBASE_AUTH "dBxRigeLzfQULWmjHg65heoGsXe7Rp7tuC5dIhSx"
 
@@ -42,36 +42,52 @@ const int triggerPinParkingF4 = 23;
 const int echoPinParkingF4 = 22;
 
 int duration = 0;
-int distance = 0;
-int readDataTime = 50;
+float distance = 0;
+int readDataTime = 20;
 int updateDatabaseTime = 3000;
 
 String path = "Error";
 int state = 0;
 
 String dbGroundLevelPaths [5] = {
-  "/Parking/Level0/L0:P1:N",
-  "/Parking/Level0/L0:P2:N",
-  "/Parking/Level0/L0:P3:N",
-  "/Parking/Level0/L0:P4:N",
-  "/Parking/Level0/L0:P5:D"
+  "/Parking/Level0/L0P1:N",
+  "/Parking/Level0/L0P2:N",
+  "/Parking/Level0/L0P3:N",
+  "/Parking/Level0/L0P4:N",
+  "/Parking/Level0/L0P5:D"
   };
 
 String dbFirstLevelPaths [5] = {
-  "/Parking/Level1/L1:P1:N",
-  "/Parking/Level1/L1:P2:F",
-  "/Parking/Level1/L1:P3:N",
-  "/Parking/Level1/L1:P4:N",
-  "/Parking/Level1/L1:P5:N"
+  "/Parking/Level1/L1P1:N",
+  "/Parking/Level1/L1P2:D",
+  "/Parking/Level1/L1P3:N",
+  "/Parking/Level1/L1P4:N",
+  "/Parking/Level1/L1P5:N"
+};
+
+String dbGroundParkingLevelPathsTests [5] {
+  "/ParkingTest/Level0/P1/Status",
+  "/ParkingTest/Level0/P2/Status",
+  "/ParkingTest/Level0/P3/Status",
+  "/ParkingTest/Level0/P4/Status",
+  "/ParkingTest/Level0/P5/Status"
+};
+
+String dbFirstParkingLevelPathsTests [5] {
+  "/ParkingTest/Level1/P1/Status",
+  "/ParkingTest/Level1/P2/Status",
+  "/ParkingTest/Level1/P3/Status",
+  "/ParkingTest/Level1/P4/Status",
+  "/ParkingTest/Level1/P5/Status"
 };
 
 const int sensorsPerLevel = 5;
 
-int groundLevelParkingDistances[sensorsPerLevel]  = {
+float groundLevelParkingDistances[sensorsPerLevel]  = {
   0,0,0,0,0
 };
 
-int firstLevelParkingDistances[sensorsPerLevel]  = {
+float firstLevelParkingDistances[sensorsPerLevel]  = {
   0,0,0,0,0
 };
 
@@ -157,65 +173,63 @@ void loop() {
   Serial.print("   F1:");
   Serial.print(readDistanceFromUSensor(triggerPinParkingF0, echoPinParkingF0));
   firstLevelParkingDistances[0] = readDistanceFromUSensor(triggerPinParkingF0, echoPinParkingF0);
-  delay(readDataTime);
+  //delay(readDataTime);
   Serial.print("   F2:");
   Serial.print(readDistanceFromUSensor(triggerPinParkingF1, echoPinParkingF1));
-  firstLevelParkingDistances[0] = readDistanceFromUSensor(triggerPinParkingF1, echoPinParkingF1);
+  firstLevelParkingDistances[1] = readDistanceFromUSensor(triggerPinParkingF1, echoPinParkingF1);
   delay(readDataTime);
   Serial.print("   F3:");
-  Serial.print(readDistanceFromUSensor(triggerPinParkingF2, echoPinParkingF2));
-  firstLevelParkingDistances[0] = readDistanceFromUSensor(triggerPinParkingF2, echoPinParkingF2);
+  Serial.println(readDistanceFromUSensor(triggerPinParkingF2, echoPinParkingF2));
+  firstLevelParkingDistances[2] = readDistanceFromUSensor(triggerPinParkingF2, echoPinParkingF2);
   delay(readDataTime);
   Serial.print("   F4:");
   Serial.print(readDistanceFromUSensor(triggerPinParkingF3, echoPinParkingF3));
-  firstLevelParkingDistances[0] = readDistanceFromUSensor(triggerPinParkingF3, echoPinParkingF3);
+  firstLevelParkingDistances[3] = readDistanceFromUSensor(triggerPinParkingF3, echoPinParkingF3);
   delay(readDataTime);
-  Serial.print("   F5:");
-  Serial.print(readDistanceFromUSensor(triggerPinParkingF4, echoPinParkingF4));
-  firstLevelParkingDistances[0] = readDistanceFromUSensor(triggerPinParkingF4, echoPinParkingF4);
-  delay(readDataTime);
-  Serial.println("cm");
+//  Serial.print("   F5:");
+//  Serial.print(readDistanceFromUSensor(triggerPinParkingF4, echoPinParkingF4));
+//  firstLevelParkingDistances[4] = readDistanceFromUSensor(triggerPinParkingF4, echoPinParkingF4);
+//  delay(readDataTime);
 
   //Calculate parking states
   for (uint8_t i = 0; i < sensorsPerLevel; i++) {
-    if (groundLevelParkingDistances[i] < 5) {
-      groundLevelParkingStates[i] = 0;
+    if ((groundLevelParkingDistances[i] >= 0.1) && (groundLevelParkingDistances[i] < 5.0)) {
+      groundLevelParkingStates[i] = 1; //Taken
+      int t = groundLevelParkingDistances[i];
+      Serial.print("////////////////////////////////////BP: TAKEN G: ");
+      Serial.println(t);
     } else {
-      groundLevelParkingStates[i] = 1;
+      groundLevelParkingStates[i] = 0; //Not Taken
     }
 
-    if (firstLevelParkingDistances[i] < 5) {
-      firstLevelParkingStates[i] = 0;
-    } else {
+    if ((firstLevelParkingDistances[i] >= 0.1) && (firstLevelParkingDistances[i] < 5.0)) {
       firstLevelParkingStates[i] = 1;
+      int f = firstLevelParkingDistances[i];
+      Serial.println("////////////////////////////////////BP: TAKEN F: ");
+      Serial.println(f);
+    } else {
+      firstLevelParkingStates[i] = 0;
     }
-  }
-  
+  }  
   //Write States Array to Firebase
-  for (uint8_t i = 0; i < sensorsPerLevel; i++) {
-    Serial.print("GroundLevel: ");
-    Serial.println(groundLevelParkingStates[i]);
-    Serial.print("FirstLevel: ");
-    Serial.println(firstLevelParkingStates[i]);
-    path = dbGroundLevelPaths[i];
+    for (uint8_t i = 0; i < sensorsPerLevel; i++) {
+    path = dbGroundParkingLevelPathsTests[i];
     state = groundLevelParkingStates[i];
     if (Firebase.setDouble(firebaseData, path, state)) {
-      Serial.println("PASSED TO PATH:");
-      Serial.println(path);
+      Serial.println("PASSED TO PATH:" + path + " with state " + state);
     } else {
       Serial.println("FAILED");
-      Serial.println("REASON: " + firebaseData.errorReason());
+      Serial.println("REASON: Firebase" + firebaseData.errorReason());
       Serial.println("------------------------------------");
       Serial.println();
     }
-    path = dbFirstLevelPaths[i];
+    path = dbFirstParkingLevelPathsTests[i];
     state = firstLevelParkingStates[i];
     if (Firebase.setDouble(firebaseData, path, state)) {
-      Serial.println("PASSED TO PATH:");
-      Serial.println(path);
+      Serial.println("PASSED TO PATH:" + path + " with state " + state);
     } else {
       Serial.println("FAILED");
-      Serial.println("REASON: " + firebaseData.errorReason());
+      Serial.println("REASON: Firebase" + firebaseData.errorReason());
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -224,7 +238,7 @@ void loop() {
 
 float readDistanceFromUSensor(int triggerPin, int echoPin) {
   digitalWrite(triggerPin, LOW);
-  delayMicroseconds(2);
+  delayMicroseconds(10);
 
   digitalWrite(triggerPin, HIGH);
   delayMicroseconds(10);
