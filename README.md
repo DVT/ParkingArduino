@@ -23,3 +23,9 @@ This is achieved through the means of sensors that determine if a Parking spot i
 We used ultra sonic sensors to measure the distance from the floor upwards. A car would cover the sensor when pulling into a parking lot. If the distance measured by the sensor is less than the set threshold, a parking spot is ocupied, otherwise vacant. 
 
 The status of the parking is determined by microprocessor and then uploaded to the Firebase database. Parkit, the app, constantly observe changes in the database and will update the parking spot gridview accordingly. 
+
+### Images of Model and Hardware
+
+![](image/2.jpg)
+![](image/1.jpg)
+![](image/3.jpg)
